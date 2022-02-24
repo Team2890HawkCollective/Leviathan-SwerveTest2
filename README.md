@@ -1,2 +1,3 @@
 # Leviathan-SwerveTest2
-Merges SwerveBot-Test into Leviathan-SwerveTest2 code base implementing SwerveModule.
+Merges SwerveBot-Test into Leviathan-SwerveTest1 code base implementing SwerveModule.
+
