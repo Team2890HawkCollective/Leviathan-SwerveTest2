@@ -14,9 +14,11 @@ import com.revrobotics.CANSparkMax;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.AnalogGyro;
@@ -28,36 +30,47 @@ import frc.robot.Constants;
 public class DriveTrainSubsystem extends SubsystemBase {
   public static final double kMaxSpeed = 3.0; // 3 meters per second
   public static final double kMaxAngularSpeed = Math.PI; // 1/2 rotation per second
-  
+
   /**
    * Spark Max Controllers - SwerveDrive Drive Motors (NEO Brushless)
    */
-  private CANSparkMax leftFrontSparkMax = new CANSparkMax(Constants.LEFT_FRONT_SPARK_MAX_ID, Constants.BRUSHLESS_MOTOR);
-  private CANSparkMax leftBackSparkMax = new CANSparkMax(Constants.LEFT_BACK_SPARK_MAX_ID, Constants.BRUSHLESS_MOTOR);
-  private CANSparkMax rightFrontSparkMax = new CANSparkMax(Constants.RIGHT_FRONT_SPARK_MAX_ID,
-      Constants.BRUSHLESS_MOTOR);
-  private CANSparkMax rightBackSparkMax = new CANSparkMax(Constants.RIGHT_BACK_SPARK_MAX_ID, Constants.BRUSHLESS_MOTOR);
+  // private CANSparkMax leftFrontSparkMax = new
+  // CANSparkMax(Constants.LEFT_FRONT_SPARK_MAX_ID, Constants.BRUSHLESS_MOTOR);
+  // private CANSparkMax leftBackSparkMax = new
+  // CANSparkMax(Constants.LEFT_BACK_SPARK_MAX_ID, Constants.BRUSHLESS_MOTOR);
+  // private CANSparkMax rightFrontSparkMax = new
+  // CANSparkMax(Constants.RIGHT_FRONT_SPARK_MAX_ID,
+  // Constants.BRUSHLESS_MOTOR);
+  // private CANSparkMax rightBackSparkMax = new
+  // CANSparkMax(Constants.RIGHT_BACK_SPARK_MAX_ID, Constants.BRUSHLESS_MOTOR);
 
   // Drive Encoders - built-in to NEO connected to SparkMax controllers.
-  RelativeEncoder leftFrontDriveEncoder = leftFrontSparkMax.getEncoder();
-  RelativeEncoder leftBackDriveEncoder = leftBackSparkMax.getEncoder();
-  RelativeEncoder rightFrontDriveEncoder = rightFrontSparkMax.getEncoder();
-  RelativeEncoder rightBackDriveEncoder = rightBackSparkMax.getEncoder();
+  // RelativeEncoder leftFrontDriveEncoder = leftFrontSparkMax.getEncoder();
+  // RelativeEncoder leftBackDriveEncoder = leftBackSparkMax.getEncoder();
+  // RelativeEncoder rightFrontDriveEncoder = rightFrontSparkMax.getEncoder();
+  // RelativeEncoder rightBackDriveEncoder = rightBackSparkMax.getEncoder();
 
   /**
    * TalonSRX Controllers - SwerveDrive PG Steer Motors (PG71)
    */
-  private WPI_TalonSRX leftFrontTalonSRX = new WPI_TalonSRX(Constants.LEFT_FRONT_TALON_SRX_ID);
-  private WPI_TalonSRX leftBackTalonSRX = new WPI_TalonSRX(Constants.LEFT_BACK_TALON_SRX_ID);
-  private WPI_TalonSRX rightFrontTalonSRX = new WPI_TalonSRX(Constants.RIGHT_FRONT_TALON_SRX_ID);
-  private WPI_TalonSRX rightBackTalonSRX = new WPI_TalonSRX(Constants.RIGHT_BACK_TALON_SRX_ID);
+  // private WPI_TalonSRX leftFrontTalonSRX = new
+  // WPI_TalonSRX(Constants.LEFT_FRONT_TALON_SRX_ID);
+  // private WPI_TalonSRX leftBackTalonSRX = new
+  // WPI_TalonSRX(Constants.LEFT_BACK_TALON_SRX_ID);
+  // private WPI_TalonSRX rightFrontTalonSRX = new
+  // WPI_TalonSRX(Constants.RIGHT_FRONT_TALON_SRX_ID);
+  // private WPI_TalonSRX rightBackTalonSRX = new
+  // WPI_TalonSRX(Constants.RIGHT_BACK_TALON_SRX_ID);
 
   // Lamprey steer encoder (connected to TalonSRX)s- SwerveModule
-  WPI_CANCoder leftFrontSteerEncoder = new WPI_CANCoder(Constants.LEFT_FRONT_TALON_SRX_ID);
-  WPI_CANCoder leftBackSteerEncoder = new WPI_CANCoder(Constants.LEFT_BACK_TALON_SRX_ID);
-  WPI_CANCoder rightFrontSteerEncoder = new WPI_CANCoder(Constants.RIGHT_FRONT_TALON_SRX_ID);
-  WPI_CANCoder rightBackSteerEncoder = new WPI_CANCoder(Constants.RIGHT_BACK_TALON_SRX_ID);
-  
+  // WPI_CANCoder leftFrontSteerEncoder = new
+  // WPI_CANCoder(Constants.LEFT_FRONT_TALON_SRX_ID);
+  // WPI_CANCoder leftBackSteerEncoder = new
+  // WPI_CANCoder(Constants.LEFT_BACK_TALON_SRX_ID);
+  // WPI_CANCoder rightFrontSteerEncoder = new
+  // WPI_CANCoder(Constants.RIGHT_FRONT_TALON_SRX_ID);
+  // WPI_CANCoder rightBackSteerEncoder = new
+  // WPI_CANCoder(Constants.RIGHT_BACK_TALON_SRX_ID);
 
   // private XboxController assistantDriverController = new
   // XboxController(Constants.XBOX_ASSISTANT_DRIVER_CONTROLLER_ID);
@@ -84,154 +97,82 @@ public class DriveTrainSubsystem extends SubsystemBase {
   Translation2d m_backRightLocation = new Translation2d(-Constants.DISTANCE_FROM_CENTER,
       -Constants.DISTANCE_FROM_CENTER);
 
+  private final SwerveModule leftFrontSwerveModule = new SwerveModule(Constants.LEFT_FRONT_SPARK_MAX_ID,
+      Constants.LEFT_FRONT_TALON_SRX_ID);
+  private final SwerveModule rightFrontSwerveModule = new SwerveModule(Constants.RIGHT_FRONT_SPARK_MAX_ID,
+      Constants.RIGHT_FRONT_TALON_SRX_ID);
+  private final SwerveModule leftBackSwerveModule = new SwerveModule(Constants.LEFT_BACK_SPARK_MAX_ID,
+      Constants.LEFT_BACK_TALON_SRX_ID);
+  private final SwerveModule rightBackSwerveModule = new SwerveModule(Constants.RIGHT_BACK_SPARK_MAX_ID,
+      Constants.RIGHT_BACK_TALON_SRX_ID);
+
+  private final AnalogGyro m_gyro = new AnalogGyro(Constants.GYRO_PORT);
+
   // Creating my kinematics object using the module locations
   SwerveDriveKinematics m_kinematics = new SwerveDriveKinematics(
       m_frontLeftLocation, m_frontRightLocation, m_backLeftLocation, m_backRightLocation);
 
-  private final AnalogGyro m_gyro = new AnalogGyro(Constants.GYRO_PORT);
+  private final SwerveDriveOdometry m_odometry = new SwerveDriveOdometry(m_kinematics, m_gyro.getRotation2d());
 
-  // Example chassis speeds: 1 meter per second forward, 3 meters
-  // per second to the left, and rotation at 1.5 radians per second
-  // counterclockwise.
-  ChassisSpeeds speeds = new ChassisSpeeds(1.0, 3.0, 1.5);  // TODO: Analyze and resolve this.
+  // Slew rate limiters to make joystick inputs more gentle; 1/3 sec from 0 to 1.
+  private final SlewRateLimiter m_xspeedLimiter = new SlewRateLimiter(1);
+  private final SlewRateLimiter m_yspeedLimiter = new SlewRateLimiter(1);
+  private final SlewRateLimiter m_rotLimiter = new SlewRateLimiter(1);
 
-  // Convert to module states
-  SwerveModuleState[] moduleStates = m_kinematics.toSwerveModuleStates(speeds);
-
-  // Front left module state
-  SwerveModuleState frontLeft = moduleStates[0];
-
-  // Front right module state
-  SwerveModuleState frontRight = moduleStates[1];
-
-  // Back left module state
-  SwerveModuleState backLeft = moduleStates[2];
-
-  // Back right module state
-  SwerveModuleState backRight = moduleStates[3];
-
-  /**
-   * Joystick objects used in the case the driver drives with joysticks
-   */
-  private Joystick leftJoystick = new Joystick(Constants.DRIVER_JOYSTICK_Y_PORT_ID);
-  private Joystick rightJoystick = new Joystick(Constants.DRIVER_JOYSTICK_X_PORT_ID);
-
-  /**
-   * Speeds used for arcade drive. Y for forwards and backwards. X for turning
-   * left and right
-   */
-  private double yDriveSpeed = 0.0;
-  private double xDriveSpeed = 0.0;
-
-  /**
-   * Speeds used for tank drive. Left for left side of bot. Right for right side
-   * of bot
-   */
-  private double leftDriveSpeed = 0.0;
-  private double rightDriveSpeed = 0.0;
-
-  /**
-   * Creates a new driveTrainSubsystem.
-   */
+  // TODO: Refactor this class so that declarations and initializations are
+  // separated by the constructor.
   public DriveTrainSubsystem() {
-    System.out.println("DEVCHECK DriveTrainSubsystem constructor");
-    // Sets left side of Spark Maxs inverted for proper functioning
-    leftFrontSparkMax.setInverted(true);
-    leftBackSparkMax.setInverted(true);
+    m_gyro.reset();
   }
 
   /**
-   * Method for using Xbox Controllers for arcade drive
+   * Method to drive the robot using joystick info.
+   *
+   * @param xSpeed        Speed of the robot in the x direction (forward).
+   * @param ySpeed        Speed of the robot in the y direction (sideways).
+   * @param rot           Angular rate of the robot.
+   * @param fieldRelative Whether the provided x and y speeds are relative to the
+   *                      field.
    */
-  public void xboxArcadeDrive() {
-    // Sets forwards and backwards speed (y) to the y-axis of the left joystick.
-    // Sets turning speed (x) tp x-axis of right joystick
-    yDriveSpeed = driverController.getLeftY() * Constants.TELEOP_DRIVE_SPEED_MODIFIER;
-    xDriveSpeed = driverController.getRightX() * Constants.TELEOP_DRIVE_SPEED_MODIFIER;
-
-    // System.out.printf("DriveSpeed: LeftY=%s RightX=%s \n", xDriveSpeed,
-    // yDriveSpeed);
-    // Calls arcade drive method and sends speeds
-    arcadeDrive(yDriveSpeed, xDriveSpeed);
+  @SuppressWarnings("ParameterName")
+  public void drive(double xSpeed, double ySpeed, double rot, boolean fieldRelative) {
+    var swerveModuleStates = m_kinematics.toSwerveModuleStates(
+        fieldRelative
+            ? ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rot, m_gyro.getRotation2d())
+            : new ChassisSpeeds(xSpeed, ySpeed, rot));
+    SwerveDriveKinematics.desaturateWheelSpeeds(swerveModuleStates, kMaxSpeed);
+    leftFrontSwerveModule.setDesiredState(swerveModuleStates[0]);
+    rightFrontSwerveModule.setDesiredState(swerveModuleStates[1]);
+    leftBackSwerveModule.setDesiredState(swerveModuleStates[2]);
+    rightBackSwerveModule.setDesiredState(swerveModuleStates[3]);
   }
 
-  /**
-   * Method for using Joysticks for arcade drive
-   */
-  public void joystickArcadeDrive() {
-    // Sets forwards and backwards speed (y) to the y-axis of the left joystick.
-    // Sets turning speed (x) tp x-axis of right joystick
-    yDriveSpeed = leftJoystick.getX() * Constants.TELEOP_DRIVE_SPEED_MODIFIER;
-    xDriveSpeed = rightJoystick.getY() * Constants.TELEOP_DRIVE_SPEED_MODIFIER;
+  public void xboxSwerveDrive(boolean fieldRelative) {
+    // Get the x speed. We are inverting this because Xbox controllers return
+    // negative values when we push forward.
+    var xSpeed = -m_xspeedLimiter.calculate(MathUtil.applyDeadband(driverController.getLeftY(), 0.02))
+        * DriveTrainSubsystem.kMaxSpeed;
 
-    // Calls arcade drive method and sends speeds
-    arcadeDrive(-yDriveSpeed, -xDriveSpeed);
+    // Get the y speed or sideways/strafe speed. We are inverting this because
+    // we want a positive value when we pull to the left. Xbox controllers
+    // return positive values when you pull to the right by default.
+    var ySpeed = -m_yspeedLimiter.calculate(MathUtil.applyDeadband(driverController.getLeftX(), 0.02))
+        * DriveTrainSubsystem.kMaxSpeed;
+
+    // Get the rate of angular rotation. We are inverting this because we want a
+    // positive value when we pull to the left (remember, CCW is positive in
+    // mathematics). Xbox controllers return positive values when you pull to
+    // the right by default.
+    var rot = -m_rotLimiter.calculate(MathUtil.applyDeadband(driverController.getRightX(), 0.02))
+        * DriveTrainSubsystem.kMaxAngularSpeed;
+
+    //this.drive(xSpeed, ySpeed, rot, fieldRelative);
+  
+    if (Math.abs(xSpeed) < 0.2) xSpeed=0;
+    if (Math.abs(ySpeed) < 0.2) ySpeed=0;
+    if (Math.abs(rot) < 0.2) rot=0;
+    // this.drive(0.0, 0.0, 0.0, fieldRelative);  // devTest
+    this.drive(xSpeed, ySpeed, rot, fieldRelative);
   }
 
-  /**
-   * Method for using an xbox controller for tank drive
-   */
-  public void xboxTankDrive() {
-    // Sets left side of bot speed to the y-axis of the left joystick. Sets right
-    // side of bot speed to y-axis of the right joystick
-    leftDriveSpeed = driverController.getLeftY() * Constants.TELEOP_DRIVE_SPEED_MODIFIER;
-    rightDriveSpeed = driverController.getRightY() * Constants.TELEOP_DRIVE_SPEED_MODIFIER;
-
-    // Calls tank drive method and sends speeds
-    tankDrive(leftDriveSpeed, rightDriveSpeed);
-  }
-
-  /**
-   * Method for using Joystick controllers for tank drive
-   */
-  public void joystickTankDrive() {
-    // Sets left side of bot speed to the y-axis of the left joystick. Sets right
-    // side of bot speed to y-axis of the right joystick
-    leftDriveSpeed = leftJoystick.getX() * Constants.TELEOP_DRIVE_SPEED_MODIFIER;
-    rightDriveSpeed = rightJoystick.getX() * Constants.TELEOP_DRIVE_SPEED_MODIFIER;
-
-    // Calls tank drive method and sends speeds
-    tankDrive(leftDriveSpeed, rightDriveSpeed);
-  }
-
-  /**
-   * Method that enables movement via arcade style drive
-   */
-  public void arcadeDrive(double ySpeed, double xSpeed) {
-    // Assigns motor to forwards/backwards speed if no turning is detected
-    drive(ySpeed, ySpeed);
-    // If turning is detected, it will be added to one speed side and subtracted
-    // from the other speed side to generate the effect of turning
-    // whilst moving forwards/backwards at the same time
-    if (xSpeed >= 0.05 || xSpeed <= -0.05) {
-      drive(-xSpeed + ySpeed, xSpeed + ySpeed);
-    }
-  }
-
-  /**
-   * Method that enables movement via tank style drive
-   */
-  public void tankDrive(double leftJoySpeed, double rightJoySpeed) {
-    drive(leftJoySpeed, rightJoySpeed);
-  }
-
-  /**
-   * Assigns speeds to left and right controllers on bot
-   */
-  public void drive(double leftSpeed, double rightSpeed) {
-
-    if (!Constants.isTargeting) {
-      // Drive motors
-      leftFrontSparkMax.set(leftSpeed);
-      rightFrontSparkMax.set(rightSpeed);
-      leftBackSparkMax.set(leftSpeed);
-      rightBackSparkMax.set(rightSpeed);
-
-      // Steer motors
-      leftFrontTalonSRX.set(leftSpeed);
-      rightFrontTalonSRX.set(rightSpeed); // DevNote: has an assembly mechanical problem. Need fix.
-      leftBackTalonSRX.set(leftSpeed);
-      rightBackTalonSRX.set(rightSpeed);
-    }
-  }
 }

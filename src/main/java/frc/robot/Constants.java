@@ -26,9 +26,16 @@ public final class Constants {
 
     // Note: The drive encoder uses 1024 ticks per revolution and is accessed by getPosition()
     // whereas the Lamprey encoder getPosition() return current degree of the encoder.
-    //m_driveEncoder.setDistancePerPulse(2 * Math.PI * kWheelRadius / kEncoderResolution);
     public static final int DRIVE_ENCODER_RESOLUTION = 1024;  // 10-bit encoder. 2^10=1024
     public static final int STEER_ENCODER_RESOLUTION = 360;   // 42 ticks per revoluion vendor info
+
+    public static final double DRIVE_PID_PROPORTIONAL_GAIN = 1.0;  // Default P value for PIDController in SwerveModule (0=Disable)
+    public static final double DRIVE_PID_INTEGRAL_GAIN = 0.0;      // Default I value for PIDController in SwerveModule (0=Disable)
+    public static final double DRIVE_PID_DERIVATIVE_GAIN = 0.0;    // Default D value for PIDController in SwerveModule (0=Disable)
+
+    public static final double STEER_PID_PROPORTIONAL_GAIN = 1.0;  // Default P value for PIDController in SwerveModule (0=Disable)
+    public static final double STEER_PID_INTEGRAL_GAIN = 0.0;      // Default I value for PIDController in SwerveModule (0=Disable)
+    public static final double STEER_PID_DERIVATIVE_GAIN = 0.0;    // Default D value for PIDController in SwerveModule (0=Disable)
 
     public static final int GYRO_PORT = 0;
 
@@ -70,7 +77,7 @@ public final class Constants {
     /**
      * Speed modifiers for Teleop
      */
-    public static final double TELEOP_DRIVE_SPEED_MODIFIER = 0.40;
+    public static final double TELEOP_DRIVE_SPEED_MODIFIER = 0.40;      // for Swerve, must set > 0.2
     public static final double SHOOTER_TARGETING_TURNING_SPEED = 0.5;
     public static final double NO_SPEED = 0.0;
     public static final double LIFT_CONTROLLER_RELEASE_SPEED = 0.25;

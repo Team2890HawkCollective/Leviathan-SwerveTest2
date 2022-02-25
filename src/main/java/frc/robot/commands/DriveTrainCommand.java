@@ -22,6 +22,7 @@ public class DriveTrainCommand extends CommandBase {
     addRequirements(subsystem);
   }
 
+  int counter=0;
 
   // Called when the command is initially scheduled.
   @Override
@@ -32,9 +33,10 @@ public class DriveTrainCommand extends CommandBase {
   // Calls which drive mode we're going to use during competitions
   @Override
   public void execute() {
-    //System.out.println("DEVCHECK DriveTrainCommand.execute"); // floods the RioLog. be careful
+    counter++;
+    if ((counter % 1000)==0) System.out.println("DEVCHECK DriveTrainCommand.execute"); // floods the RioLog. be careful
     //m_driveTrainSubsystem.joystickArcadeDrive();
-    m_driveTrainSubsystem.xboxArcadeDrive();
+    m_driveTrainSubsystem.xboxSwerveDrive(false);
   }
 
   // Called once the command ends or is interrupted.
