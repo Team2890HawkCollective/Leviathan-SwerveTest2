@@ -70,7 +70,7 @@ public final class Constants {
 
     // CAN IDs for Climber controller+motor - TalonFX+Falcon500.
     public static final int LEFT_WINCH_TALON_FX_ID = 13;
-    public static final int LEFT_CLIMBER_TALON_FX_ID = 14;
+    public static final int LEFT_CLIMBER_TALON_FX_ID = 14;  // 2022-03-09 for testing.
     public static final int RIGHT_WINCH_TALON_FX_ID = 15;
     public static final int RIGHT_CLIMBER_TALON_FX_ID = 17;
 

@@ -26,6 +26,7 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotInit() {
+    CommandScheduler.getInstance().cancelAll();
     // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
     // autonomous chooser on the dashboard.
     m_robotContainer = new RobotContainer();
@@ -87,6 +88,7 @@ public class Robot extends TimedRobot {
   public void teleopPeriodic() {
     //System.out.println("ping");
     m_robotContainer.getDriveTrainCommand().execute();
+    m_robotContainer.getClimberCommand().execute();
     //driveTrainSubsystem.arcadeDrive(0.1, 0.1);  // 2022-02-10  devtest
 
   }

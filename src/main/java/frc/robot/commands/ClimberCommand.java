@@ -33,8 +33,7 @@ public class ClimberCommand extends CommandBase {
   @Override
   public void execute() {
     //System.out.println("DEVCHECK ClimberCommand.execute"); // floods the RioLog. be careful
-    //m_driveTrainSubsystem.joystickArcadeDrive();
-    m_climberSubsystem.xboxArcadeDrive();
+    m_climberSubsystem.test();
   }
 
   // Called once the command ends or is interrupted.
